@@ -1622,9 +1622,23 @@
     }
 
     .proto-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
       padding: 10px 14px;
-      flex-wrap: wrap;
-      row-gap: 8px;
+    }
+
+    .proto-switch__label {
+      grid-column: 1 / -1;
+      margin-right: 0;
+    }
+
+    .proto-switch__btn {
+      width: 100%;
+      white-space: normal;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .pos-topbar {
