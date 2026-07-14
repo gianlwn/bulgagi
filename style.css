@@ -1,7 +1,7 @@
   /* ---------- tokens ---------- */
   :root {
-    --brand-a: #FF8C00;
-    --brand-b: #D84315;
+    --brand-a: #E2725B;
+    --brand-b: #B8402C;
     --ink: #1E293B;
     --paper: #FBF7F1;
     --paper-alt: #F2EBE0;
@@ -18,59 +18,6 @@
     --shadow: 0 1px 2px rgba(30, 41, 59, .06), 0 8px 24px -12px rgba(30, 41, 59, .18);
     --radius: 14px;
     --radius-sm: 9px;
-    color-scheme: light;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #12151B;
-      --paper-alt: #171B23;
-      --card: #1E293B;
-      --line: rgba(241, 239, 234, .12);
-      --text: #F1EFEA;
-      --text-dim: #9AA5B8;
-      --ok: #4ADE80;
-      --ok-bg: rgba(74, 222, 128, .14);
-      --low: #F5A623;
-      --low-bg: rgba(245, 166, 35, .16);
-      --out: #F87171;
-      --out-bg: rgba(248, 113, 113, .16);
-      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 30px -14px rgba(0, 0, 0, .6);
-      color-scheme: dark;
-    }
-  }
-
-  :root[data-theme="dark"] {
-    --paper: #12151B;
-    --paper-alt: #171B23;
-    --card: #1E293B;
-    --line: rgba(241, 239, 234, .12);
-    --text: #F1EFEA;
-    --text-dim: #9AA5B8;
-    --ok: #4ADE80;
-    --ok-bg: rgba(74, 222, 128, .14);
-    --low: #F5A623;
-    --low-bg: rgba(245, 166, 35, .16);
-    --out: #F87171;
-    --out-bg: rgba(248, 113, 113, .16);
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 30px -14px rgba(0, 0, 0, .6);
-    color-scheme: dark;
-  }
-
-  :root[data-theme="light"] {
-    --paper: #FBF7F1;
-    --paper-alt: #F2EBE0;
-    --card: #FFFFFF;
-    --line: rgba(30, 41, 59, .12);
-    --text: #1E293B;
-    --text-dim: #5C6A80;
-    --ok: #15803D;
-    --ok-bg: #E6F4EA;
-    --low: #B45309;
-    --low-bg: #FCEFD9;
-    --out: #9F1239;
-    --out-bg: #FBE7EC;
-    --shadow: 0 1px 2px rgba(30, 41, 59, .06), 0 8px 24px -12px rgba(30, 41, 59, .18);
     color-scheme: light;
   }
 
@@ -474,6 +421,10 @@
     padding: 4px 8px;
     border-radius: 999px;
     white-space: nowrap;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .badge--low {
@@ -553,20 +504,6 @@
     background: var(--ink);
     color: #fff;
     border-color: var(--ink);
-  }
-
-  :root[data-theme="dark"] .flavor-chip.is-selected {
-    background: var(--brand-a);
-    border-color: var(--brand-a);
-    color: #1a1206;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .flavor-chip.is-selected {
-      background: var(--brand-a);
-      border-color: var(--brand-a);
-      color: #1a1206;
-    }
   }
 
   .card__add {

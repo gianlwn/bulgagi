@@ -14,7 +14,7 @@
 
     var PRODUCTS = [
       { id: "c1", cat: "chicken", name: "Solo Bucket", desc: "3 pcs boneless fried chicken", price: 145, stock: "ok", flavors: true },
-      { id: "c2", cat: "chicken", name: "Half Bucket", desc: "6 pcs boneless fried chicken", price: 280, stock: "low", stockNote: "4 buckets left", flavors: true },
+      { id: "c2", cat: "chicken", name: "Half Bucket", desc: "6 pcs boneless fried chicken", price: 280, stock: "low", stockQty: 4, flavors: true },
       { id: "c3", cat: "chicken", name: "Whole Bucket", desc: "12 pcs boneless fried chicken", price: 555, stock: "ok", flavors: true },
       { id: "c4", cat: "chicken", name: "Half Bucket Combo", desc: "6 pcs + 2 cups rice", price: 400, stock: "ok", flavors: true },
       { id: "c5", cat: "chicken", name: "Whole Bucket Bundle", desc: "12 pcs + 1.5L softdrink", price: 650, stock: "out", flavors: true },
@@ -24,7 +24,7 @@
 
       { id: "w1", cat: "wings", name: "Solo Bucket", desc: "5 pcs chicken wings", price: 110, stock: "ok", flavors: true },
       { id: "w2", cat: "wings", name: "Half Bucket", desc: "8 pcs chicken wings", price: 220, stock: "ok", flavors: true },
-      { id: "w3", cat: "wings", name: "Whole Bucket", desc: "10 pcs chicken wings", price: 435, stock: "low", stockNote: "2 buckets left", flavors: true },
+      { id: "w3", cat: "wings", name: "Whole Bucket", desc: "10 pcs chicken wings", price: 435, stock: "low", stockQty: 2, flavors: true },
       { id: "w4", cat: "wings", name: "Half Bucket Combo", desc: "8 pcs + 2 cups rice", price: 330, stock: "ok", flavors: true },
       { id: "w5", cat: "wings", name: "Whole Bucket Bundle", desc: "10 pcs + 1.5L softdrink", price: 530, stock: "ok", flavors: true },
       { id: "w6", cat: "wings", name: "2 Whole Bucket Bundle", desc: "20 pcs + 1.5L softdrink", price: 970, stock: "ok", flavors: true },
@@ -35,12 +35,12 @@
       { id: "s2", cat: "sandwich", name: "Chicken Sandwich Spicy", desc: "Crispy fillet, spicy mayo", price: 105, stock: "ok" },
       { id: "s3", cat: "sandwich", name: "Chick n' Cheese", desc: "Fillet, melted cheese", price: 115, stock: "ok" },
       { id: "s4", cat: "sandwich", name: "Beef Hamburger Classic", desc: "Beef patty, house sauce", price: 100, stock: "ok" },
-      { id: "s5", cat: "sandwich", name: "Beef Bacondor", desc: "Beef, bacon, cheddar", price: 160, stock: "low", stockNote: "Bacon running low" },
+      { id: "s5", cat: "sandwich", name: "Beef Bacondor", desc: "Beef, bacon, cheddar", price: 160, stock: "low", stockQty: 5 },
       { id: "s6", cat: "sandwich", name: "Double Gag", desc: "Double beef, double cheese", price: 170, stock: "ok" },
 
       { id: "a1", cat: "sides", name: "Empanada", desc: "Savory hand pie", price: 50, stock: "ok" },
       { id: "a2", cat: "sides", name: "Regular Fries", desc: "Classic salted fries", price: 50, stock: "ok" },
-      { id: "a3", cat: "sides", name: "Mozzarella Stick", desc: "6 pcs, marinara dip", price: 120, stock: "low", stockNote: "6 sticks left" },
+      { id: "a3", cat: "sides", name: "Mozzarella Stick", desc: "6 pcs, marinara dip", price: 120, stock: "low", stockQty: 6 },
       { id: "a4", cat: "sides", name: "Cajun Fries Overload", desc: "Loaded fries, cajun spice", price: 150, stock: "ok" },
       { id: "a5", cat: "sides", name: "Luncheon Meat Fries", desc: "Fries topped w/ luncheon meat", price: 100, stock: "out" },
 
@@ -48,10 +48,8 @@
       { id: "d2", cat: "drinks", name: "Fruit Soda", desc: "Sparkling fruit soda", price: 49, stock: "ok" },
       { id: "d3", cat: "drinks", name: "Fruit Tea Yakult", desc: "Fruit tea with yakult", price: 79, stock: "ok" },
       { id: "d4", cat: "drinks", name: "Kalmado Iced Coffee 12oz", desc: "House iced coffee", price: 49, stock: "ok" },
-      { id: "d5", cat: "drinks", name: "Coke Mismo", desc: "Single serve softdrink", price: 30, stock: "low", stockNote: "8 bottles left" }
+      { id: "d5", cat: "drinks", name: "Coke Mismo", desc: "Single serve softdrink", price: 30, stock: "low", stockQty: 8 }
     ];
-
-    var STOCK_LABEL = { low: "LOW STOCK", out: "OUT OF STOCK" };
 
     /* ---------------- state ---------------- */
     var state = {
@@ -119,8 +117,11 @@
       var top = el("div", "card__top");
       var iconBox = el("div", "card__icon", "<svg class='icon'><use href='#" + iconId + "'/></svg>");
       top.appendChild(iconBox);
-      if (p.stock !== "ok") {
-        var b = el("span", "badge badge--" + p.stock, STOCK_LABEL[p.stock] + (p.stockNote ? " · " + p.stockNote : ""));
+      if (p.stock === "low") {
+        var b = el("span", "badge badge--low", p.stockQty + " left");
+        top.appendChild(b);
+      } else if (p.stock === "out") {
+        var b = el("span", "badge badge--out", "Out of stock");
         top.appendChild(b);
       }
       card.appendChild(top);
