@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Bulgagi POS — Build Pass 1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="icon-bucket" viewBox="0 0 24 24">
+      <path d="M6 8h12l-1.4 11.2a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6 8Z" fill="none" stroke="currentColor"
+        stroke-width="1.6" stroke-linejoin="round" />
+      <path d="M8 8a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <circle cx="10.2" cy="13" r="1.1" fill="currentColor" />
+      <circle cx="14" cy="14.4" r="1.1" fill="currentColor" />
+      <circle cx="11.6" cy="16.6" r="1.1" fill="currentColor" />
+    </symbol>
+    <symbol id="icon-wing" viewBox="0 0 24 24">
+      <path
+        d="M5 15c1-5 5-9 11-9 2 0 3.5 1 3.5 2.6 0 2.4-2.4 3-4.6 3.2 2 .6 3.2 1.8 3.2 3.4 0 2-2 3-4.4 2.6-.6 1.6-2.4 2.7-4.4 2.4C7 19.8 5.3 18 5 15Z"
+        fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-sandwich" viewBox="0 0 24 24">
+      <path d="M4 10c0-2.8 3.6-5 8-5s8 2.2 8 5" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" />
+      <rect x="4" y="10" width="16" height="3.2" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <path d="M4.8 15.5h14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      <path d="M5.6 18.6h12.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    </symbol>
+    <symbol id="icon-fries" viewBox="0 0 24 24">
+      <path d="M6 10 5 20h14l-1-10Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+      <path d="M8 10V6M11 10V4.6M14 10V6M17 10v3.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    </symbol>
+    <symbol id="icon-cup" viewBox="0 0 24 24">
+      <path d="M7 8h10l-1.2 10.4a2 2 0 0 1-2 1.6h-3.6a2 2 0 0 1-2-1.6L7 8Z" fill="none" stroke="currentColor"
+        stroke-width="1.6" stroke-linejoin="round" />
+      <path d="M9 8V6.4A1.4 1.4 0 0 1 10.4 5h3.2A1.4 1.4 0 0 1 15 6.4V8" stroke="currentColor" stroke-width="1.6" />
+      <path d="M9.6 11.4l.8 6M14.4 11.4l-.8 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+    </symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24">
+      <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </symbol>
+    <symbol id="icon-back" viewBox="0 0 24 24">
+      <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24">
+      <rect x="5.5" y="10.5" width="13" height="9" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+    </symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24">
+      <path d="M12 15V4M8 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+        stroke-linejoin="round" />
+      <path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.7"
+        stroke-linecap="round" />
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-image" viewBox="0 0 24 24">
+      <rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <circle cx="9" cy="10" r="1.4" fill="currentColor" />
+      <path d="M5 17l5-5 3.5 3.5L17 12l3 3.5" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linejoin="round" />
+    </symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24">
+      <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" />
+      <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <div class="proto-switch" role="tablist" aria-label="Prototype screens">
+    <span class="proto-switch__label">Build Pass 1</span>
+    <button class="proto-switch__btn is-active" id="tabPos" role="tab" aria-selected="true">Screen 1 · In-Store
+      POS</button>
+    <button class="proto-switch__btn" id="tabCheckout" role="tab" aria-selected="false">Screen 2 · Online
+      Checkout</button>
+    <button class="proto-switch__btn" id="tabWizard" role="tab" aria-selected="false">Screen 3 · Shift
+      Closeout</button>
+    <button class="proto-switch__btn" id="tabDashboard" role="tab" aria-selected="false">Screen 4 ·
+      Dashboard</button>
+  </div>
+
+  <!-- ============ SCREEN 1 — IN-STORE POS ============ -->
+  <section id="posView" class="pos">
+    <header class="pos-topbar">
+      <div class="brand-mark">
+        <span class="brand-mark__glyph" aria-hidden="true">B</span>
+        <span class="brand-mark__text">
+          <strong>Bulgagi</strong>
+          <em>Korean Boneless Fried Chicken</em>
+        </span>
+      </div>
+      <div class="pos-topbar__meta">
+        <div class="ticket-chip">Ticket <span id="ticketNo" class="tnum">#47</span></div>
+        <div class="staff-chip">Cashier · <strong>J. Ramos</strong></div>
+        <button class="btn btn--ghost btn--sm" id="managerOverrideBtn">
+          <svg class="icon icon--sm">
+            <use href="#icon-lock" />
+          </svg> Manager Override
+        </button>
+      </div>
+    </header>
+
+    <div class="held-strip" id="heldStrip" aria-label="Held orders">
+      <div class="held-strip__label">
+        <svg class="icon icon--sm">
+          <use href="#icon-pause" />
+        </svg> Held Orders
+      </div>
+      <div class="held-strip__chips" id="heldChips"></div>
+    </div>
+
+    <div class="pos-body">
+      <div class="pos-catalog">
+        <nav class="cat-tabs" id="catTabs" aria-label="Menu categories"></nav>
+        <div class="product-grid" id="productGrid"></div>
+      </div>
+
+      <aside class="order-panel">
+        <div class="order-panel__head">
+          <h2>Current Order</h2>
+          <span class="order-panel__ticket">Ticket <span class="tnum" id="ticketNoSide">#47</span></span>
+        </div>
+
+        <div class="order-lines" id="orderLines">
+          <p class="order-empty" id="orderEmpty">No items yet — tap the menu to add.</p>
+        </div>
+
+        <div class="order-totals" id="orderTotals" hidden>
+          <div class="order-totals__row"><span>Vatable Sales</span><span class="tnum" id="sumVatable">₱0.00</span></div>
+          <div class="order-totals__row"><span>VAT (12%) incl.</span><span class="tnum" id="sumVat">₱0.00</span></div>
+          <div class="order-totals__row order-totals__row--total"><span>Total Due</span><span class="tnum"
+              id="sumTotal">₱0.00</span></div>
+        </div>
+
+        <div class="order-actions">
+          <button class="btn btn--ghost" id="holdBtn" disabled>Hold Order</button>
+          <button class="btn btn--primary" id="chargeBtn" disabled>Charge <span class="tnum"
+              id="chargeAmt">₱0.00</span></button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2 — ONLINE / FACEBOOK CHECKOUT ============ -->
+  <section id="checkoutView" class="checkout" hidden>
+    <div class="phone">
+      <div class="phone__bar">
+        <svg class="icon">
+          <use href="#icon-back" />
+        </svg>
+        <div class="phone__bar-title">
+          <strong>Bulgagi Foods</strong>
+          <span>Facebook Checkout</span>
+        </div>
+        <span class="phone__bar-dot" aria-hidden="true"></span>
+      </div>
+
+      <div class="phone__scroll" id="checkoutScroll">
+
+        <section class="ck-block">
+          <h3 class="ck-block__title">Order Summary <span class="ck-ref">FB‑2291</span></h3>
+          <ul class="ck-order-list">
+            <li><span>1x Half Bucket Combo <em>· Honey Garlic</em></span><span class="tnum">₱400.00</span></li>
+            <li><span>1x Kimchi Fried Rice add-on</span><span class="tnum">₱35.00</span></li>
+            <li><span>1x 1.5L Coke</span><span class="tnum">₱100.00</span></li>
+          </ul>
+          <div class="ck-order-total"><span>Total to pay</span><span class="tnum">₱535.00</span></div>
+        </section>
+
+        <section class="ck-block">
+          <h3 class="ck-block__title">Delivery Details</h3>
+          <div class="ck-field"><label for="ckName">Full name</label><input id="ckName" type="text"
+              value="Maricel Ong" /></div>
+          <div class="ck-field"><label for="ckPhone">Contact number</label><input id="ckPhone" type="tel"
+              value="0917 555 0142" /></div>
+          <div class="ck-field"><label for="ckAddr">Delivery address</label><textarea id="ckAddr"
+              rows="2">Blk 4 Lot 12, Sampaguita St., Brgy. San Isidro</textarea></div>
+        </section>
+
+        <section class="ck-block">
+          <h3 class="ck-block__title">Payment Method</h3>
+          <div class="ck-paymethods">
+            <button class="ck-paymethod is-active" type="button">GCash</button>
+            <button class="ck-paymethod" type="button" disabled title="Available soon">QR Ph</button>
+          </div>
+
+          <div class="gcash-panel">
+            <p class="gcash-panel__instr">Send the exact amount to <strong>GCash 0917‑214‑8830</strong> · Bulgagi Foods,
+              then enter the reference number below.</p>
+
+            <div class="ck-field">
+              <label for="refInput">GCash Reference Number</label>
+              <div class="ref-input-wrap">
+                <input id="refInput" class="ref-input tnum" inputmode="numeric" autocomplete="off"
+                  placeholder="0000 0000 0000" maxlength="13" />
+                <span class="ref-input__status" id="refStatus">0/13</span>
+              </div>
+              <p class="ck-field__hint" id="refHint">Numbers only, exactly 13 digits.</p>
+            </div>
+
+            <div class="ck-field">
+              <label>Payment screenshot</label>
+              <label class="dropzone" id="dropzone" for="fileInput">
+                <svg class="icon">
+                  <use href="#icon-upload" />
+                </svg>
+                <span id="dropzoneText">Tap to upload your GCash payment screenshot</span>
+                <input id="fileInput" type="file" accept="image/*" hidden />
+              </label>
+              <div class="attachment" id="attachment" hidden>
+                <svg class="icon">
+                  <use href="#icon-image" />
+                </svg>
+                <span id="attachmentName">receipt.jpg</span>
+                <svg class="icon icon--ok">
+                  <use href="#icon-check" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <button class="btn btn--primary btn--block" id="confirmOrderBtn" disabled>
+          <span id="confirmBtnLabel">Enter reference number &amp; upload screenshot</span>
+        </button>
+
+        <div class="ck-success" id="ckSuccess" hidden>
+          <svg class="icon icon--lg icon--ok">
+            <use href="#icon-check" />
+          </svg>
+          <h3>Order submitted</h3>
+          <p>Ticket <strong>FB-2291</strong> is <span class="status-pill status-pill--hold">PENDING VERIFICATION</span>
+          </p>
+          <p class="ck-success__note">We'll confirm your order once payment is verified — usually within 15 minutes.
+            You'll get a message here.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3 — SHIFT CLOSEOUT & BULK WASTAGE WIZARD ============ -->
+  <section id="wizardView" class="wizard" hidden>
+    <header class="pos-topbar">
+      <div class="brand-mark">
+        <span class="brand-mark__glyph" aria-hidden="true">B</span>
+        <span class="brand-mark__text">
+          <strong>End-of-Day Shift Closeout</strong>
+          <em>Ticket range #1–#47 · Cashier J. Ramos</em>
+        </span>
+      </div>
+    </header>
+
+    <ol class="wizard-steps" id="wizardSteps">
+      <li class="wizard-step is-active" data-step="1"><span class="wizard-step__num">1</span><span>Cash
+          Drawer</span></li>
+      <li class="wizard-step" data-step="2"><span class="wizard-step__num">2</span><span>Wastage Log</span></li>
+      <li class="wizard-step" data-step="3"><span class="wizard-step__num">3</span><span>Review &amp;
+          Approve</span></li>
+    </ol>
+
+    <div class="wizard-body">
+
+      <!-- Step 1 — Cash Drawer -->
+      <div class="wizard-panel" id="wizStep1" data-panel="1">
+        <h3 class="wizard-panel__title">Cash Drawer Reconciliation</h3>
+        <p class="wizard-panel__hint">Count the physical cash in the drawer and enter the total below.</p>
+
+        <div class="cash-card">
+          <div class="cash-row"><span>Starting Float</span><span class="tnum" id="cashFloat">₱3,000.00</span></div>
+          <div class="cash-row"><span>Expected Cash Sales (System)</span><span class="tnum"
+              id="cashSystemSales">₱8,420.00</span></div>
+          <div class="cash-row cash-row--total"><span>Expected Drawer Total</span><span class="tnum"
+              id="cashExpected">₱11,420.00</span></div>
+        </div>
+
+        <div class="ck-field">
+          <label for="cashActual">Actual Cash Counted</label>
+          <input id="cashActual" class="cash-input tnum" type="number" inputmode="decimal" step="0.01"
+            placeholder="0.00" />
+        </div>
+
+        <div class="variance-readout" id="varianceReadout" hidden>
+          <span>Variance</span>
+          <span class="variance-badge tnum" id="varianceBadge">₱0.00</span>
+        </div>
+      </div>
+
+      <!-- Step 2 — Bulk Wastage Log -->
+      <div class="wizard-panel" id="wizStep2" data-panel="2" hidden>
+        <h3 class="wizard-panel__title">Bulk Wastage Log</h3>
+        <p class="wizard-panel__hint">Log every spoiled, expired, or damaged item from tonight in one batch — no need
+          to submit a form per item.</p>
+
+        <div class="table-scroll">
+          <div class="waste-grid" id="wasteGrid">
+            <div class="waste-grid__head">
+              <span>Raw Material</span><span>Qty</span><span>Reason</span><span>Est. Cost</span><span></span>
+            </div>
+            <div class="waste-rows" id="wasteRows"></div>
+          </div>
+        </div>
+
+        <button class="btn btn--ghost btn--sm" id="addWasteRowBtn" type="button">+ Add Item</button>
+
+        <div class="waste-total-bar">
+          <span>Total Wastage Value</span>
+          <span class="tnum" id="wasteTotal">₱0.00</span>
+        </div>
+      </div>
+
+      <!-- Step 3 — Review & Approve -->
+      <div class="wizard-panel" id="wizStep3" data-panel="3" hidden>
+        <h3 class="wizard-panel__title">Review &amp; Approve</h3>
+        <p class="wizard-panel__hint">Confirm the numbers below, then approve with a manager PIN to close the shift
+          — cash and wastage submit together as one batch.</p>
+
+        <div class="review-summary">
+          <div class="review-row"><span>Ticket Range</span><span class="tnum">#1 – #47</span></div>
+          <div class="review-row"><span>Cash Variance</span><span class="tnum" id="reviewVariance">₱0.00</span></div>
+          <div class="review-row"><span>Wastage Logged</span><span class="tnum" id="reviewWastage">0 items ·
+              ₱0.00</span></div>
+          <div class="review-row"><span>Closed By</span><span>J. Ramos</span></div>
+        </div>
+
+        <button class="btn btn--primary btn--block" id="approveCloseoutBtn" type="button">
+          <svg class="icon icon--sm">
+            <use href="#icon-lock" />
+          </svg> Approve &amp; Close Shift
+        </button>
+      </div>
+
+      <!-- Success -->
+      <div class="closeout-success" id="closeoutSuccess" hidden>
+        <svg class="icon icon--lg icon--ok">
+          <use href="#icon-check" />
+        </svg>
+        <h3>Shift closed</h3>
+        <p>Z-Report <strong id="zReportNo">#Z-0001</strong> generated for Ticket range #1–#47.</p>
+        <div class="closeout-success__summary" id="closeoutSuccessSummary"></div>
+        <button class="btn btn--ghost btn--sm" id="newCloseoutBtn" type="button">Start Next Shift Closeout</button>
+      </div>
+
+    </div>
+
+    <div class="wizard-nav" id="wizardNav">
+      <button class="btn btn--ghost" id="wizBackBtn" type="button" disabled>Back</button>
+      <button class="btn btn--primary" id="wizNextBtn" type="button" disabled>Next</button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 4 — MANAGEMENT DASHBOARD & REPORTS ============ -->
+  <section id="dashboardView" class="dash" hidden>
+    <header class="dash-header">
+      <div class="brand-mark">
+        <span class="brand-mark__glyph" aria-hidden="true">B</span>
+        <span class="brand-mark__text">
+          <strong>Management Dashboard</strong>
+          <em>Today · Jul 14, 2026</em>
+        </span>
+      </div>
+      <div class="role-toggle" id="roleToggle" role="tablist" aria-label="Viewing role">
+        <span class="role-toggle__label">Viewing as</span>
+        <button class="role-toggle__btn is-active" data-role="manager" type="button">Manager</button>
+        <button class="role-toggle__btn" data-role="cashier" type="button">Line Cashier</button>
+      </div>
+    </header>
+
+    <div class="kpi-row">
+      <div class="kpi-tile">
+        <span class="kpi-tile__label">Gross Sales Today</span>
+        <span class="kpi-tile__value tnum" id="kpiSales">₱18,940.00</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-tile__label">Orders Today</span>
+        <span class="kpi-tile__value tnum" id="kpiOrders">146</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-tile__label">Average Ticket</span>
+        <span class="kpi-tile__value tnum" id="kpiAvg">₱129.73</span>
+      </div>
+      <div class="kpi-tile mask-wrap" data-mask>
+        <div class="mask-content">
+          <span class="kpi-tile__label">Food Cost %</span>
+          <span class="kpi-tile__value tnum">31.4%</span>
+        </div>
+        <div class="mask-overlay">
+          <svg class="icon icon--sm">
+            <use href="#icon-lock" />
+          </svg>
+          <span>Manager only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="panel">
+        <h3 class="panel__title">Sales Performance <span class="panel__sub">Last 7 days</span></h3>
+        <div id="chartBars"></div>
+        <h4 class="panel__subtitle">Top Sellers Today</h4>
+        <div class="rank-list" id="rankList"></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel__title">Stock-Out Incidents <span class="panel__sub">Today</span></h3>
+        <div class="incident-list" id="incidentList"></div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="panel mask-wrap" data-mask>
+        <div class="mask-content">
+          <h3 class="panel__title">Staff Accountability <span class="panel__sub">This week</span></h3>
+          <div class="staff-table" id="staffTable"></div>
+        </div>
+        <div class="mask-overlay">
+          <svg class="icon icon--sm">
+            <use href="#icon-lock" />
+          </svg>
+          <span>Manager only</span>
+        </div>
+      </div>
+
+      <div class="panel mask-wrap" data-mask>
+        <div class="mask-content">
+          <h3 class="panel__title">Recent Shift Closeouts <span class="panel__sub">Wastage &amp; variance</span>
+          </h3>
+          <p class="closeout-summary-line">This week's total wastage: <strong class="tnum"
+              id="wastageWeekTotal">₱438.00</strong></p>
+          <div class="closeout-list" id="closeoutList"></div>
+        </div>
+        <div class="mask-overlay">
+          <svg class="icon icon--sm">
+            <use href="#icon-lock" />
+          </svg>
+          <span>Manager only</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MANAGER PIN MODAL ============ -->
+  <div class="scrim" id="pinScrim" hidden>
+    <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+      <button class="pin-modal__close" id="pinCloseBtn" aria-label="Cancel">
+        <svg class="icon">
+          <use href="#icon-close" />
+        </svg>
+      </button>
+      <svg class="icon icon--lg">
+        <use href="#icon-lock" />
+      </svg>
+      <h3 id="pinTitle">Manager Approval Required</h3>
+      <p class="pin-modal__context" id="pinContext">General manager access</p>
+
+      <div class="pin-dots" id="pinDots">
+        <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span
+          class="pin-dot"></span>
+      </div>
+
+      <p class="pin-modal__status" id="pinStatus">3 attempts remaining</p>
+
+      <div class="pin-keypad" id="pinKeypad">
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+        <button class="pin-keypad__ghost" disabled></button><button data-k="0">0</button>
+        <button id="pinBackspace" aria-label="Delete digit">⌫</button>
+      </div>
+
+      <div class="pin-lockout" id="pinLockout" hidden>
+        <p>Terminal locked</p>
+        <p class="pin-lockout__timer tnum" id="pinLockoutTimer">0:30</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script src="scripts.js"></script>
+</body>
+</html>
