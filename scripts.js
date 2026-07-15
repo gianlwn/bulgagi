@@ -316,6 +316,7 @@
       nextTicket();
       renderCart();
       renderQueue();
+      deductInventoryForCart(order.cart);
       showToast("Ticket #" + t + " sent to kitchen · " + amt + " charged");
     }
 
@@ -490,6 +491,7 @@
       closeOrderModal();
       renderHeld();
       renderQueue();
+      deductInventoryForCart(order.cart);
       showToast("Ticket #" + order.ticket + " released to kitchen");
     }
 
@@ -739,6 +741,7 @@
       var order = { id: "ord" + Date.now(), ticket: ticket, type: type, status: "PREPARING", cart: cart, customer: null, payment: { method: "platform-prepaid" }, total: lineTotal(cart) };
       orders.push(order);
       renderQueue();
+      deductInventoryForCart(order.cart);
       showToast(TYPE_LABEL[type] + " order #" + ticket + " received — pre-paid, sent to kitchen");
     }
     $("#simGrabBtn").addEventListener("click", function () { simulatePlatformOrder("grabfood"); });
@@ -1095,6 +1098,233 @@
       applyRoleMasking();
     }
 
+    /* ---------------- dashboard sub-tabs (Sales Analytics / Inventory Console) ---------------- */
+    $("#dashSubtabs").addEventListener("click", function (ev) {
+      var btn = ev.target.closest(".dash-subtab");
+      if (!btn) return;
+      switchDashSubtab(btn.dataset.subtab);
+    });
+    function switchDashSubtab(tab) {
+      $all(".dash-subtab").forEach(function (b) {
+        var active = b.dataset.subtab === tab;
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-selected", active);
+      });
+      $("#salesSubview").hidden = tab !== "sales";
+      $("#inventorySubview").hidden = tab !== "inventory";
+      if (tab === "inventory") { renderInventoryLedger(); renderStockAudit(); }
+    }
+
+    /* ---------------- Inventory Console (Screen 4) ---------------- */
+    // Local-state simulation only — no backend/database. Separate from the
+    // Shift Closeout wizard's RAW_MATERIALS so Screen 3 stays untouched.
+    var INVENTORY_ITEMS = [
+      { id: "inv1", name: "Raw Chicken", unit: "g", stockQty: 15000, reorderThreshold: 5000 },
+      { id: "inv2", name: "Breading Mix", unit: "g", stockQty: 8000, reorderThreshold: 2500 },
+      { id: "inv3", name: "Cooking Oil", unit: "ml", stockQty: 12000, reorderThreshold: 4000 },
+      { id: "inv4", name: "Plain Rice", unit: "g", stockQty: 10000, reorderThreshold: 3000 },
+      { id: "inv5", name: "Yangnyeom Sauce", unit: "ml", stockQty: 5000, reorderThreshold: 1500 },
+      { id: "inv6", name: "Honey Garlic Sauce", unit: "ml", stockQty: 4500, reorderThreshold: 1500 },
+      { id: "inv7", name: "Burger Buns", unit: "pcs", stockQty: 120, reorderThreshold: 30 },
+      { id: "inv8", name: "Cheese Slices", unit: "pcs", stockQty: 150, reorderThreshold: 40 },
+      { id: "inv9", name: "Softdrink Syrup", unit: "ml", stockQty: 6000, reorderThreshold: 2000 },
+      { id: "inv10", name: "Fries Potato Cut", unit: "g", stockQty: 9000, reorderThreshold: 3000 }
+    ];
+
+    // Bill of Materials: ingredient consumption per 1 unit sold, by product id.
+    var BOM_BY_PRODUCT = {
+      c1: [{ invId: "inv1", qty: 260 }, { invId: "inv2", qty: 90 }, { invId: "inv3", qty: 60 }, { invId: "inv6", qty: 40 }],
+      c2: [{ invId: "inv1", qty: 520 }, { invId: "inv2", qty: 180 }, { invId: "inv3", qty: 120 }, { invId: "inv6", qty: 80 }],
+      c3: [{ invId: "inv1", qty: 1040 }, { invId: "inv2", qty: 360 }, { invId: "inv3", qty: 240 }, { invId: "inv6", qty: 160 }],
+      c4: [{ invId: "inv1", qty: 520 }, { invId: "inv2", qty: 180 }, { invId: "inv3", qty: 120 }, { invId: "inv4", qty: 400 }, { invId: "inv6", qty: 80 }],
+      c5: [{ invId: "inv1", qty: 1040 }, { invId: "inv2", qty: 360 }, { invId: "inv3", qty: 240 }, { invId: "inv9", qty: 300 }],
+      c6: [{ invId: "inv1", qty: 2080 }, { invId: "inv2", qty: 720 }, { invId: "inv3", qty: 480 }, { invId: "inv9", qty: 300 }],
+      c7: [{ invId: "inv1", qty: 175 }, { invId: "inv2", qty: 60 }, { invId: "inv3", qty: 40 }, { invId: "inv4", qty: 200 }],
+      c8: [{ invId: "inv1", qty: 260 }, { invId: "inv2", qty: 90 }, { invId: "inv3", qty: 60 }, { invId: "inv4", qty: 200 }],
+
+      w1: [{ invId: "inv1", qty: 300 }, { invId: "inv2", qty: 100 }, { invId: "inv3", qty: 70 }, { invId: "inv5", qty: 40 }],
+      w2: [{ invId: "inv1", qty: 480 }, { invId: "inv2", qty: 160 }, { invId: "inv3", qty: 110 }, { invId: "inv5", qty: 70 }],
+      w3: [{ invId: "inv1", qty: 600 }, { invId: "inv2", qty: 200 }, { invId: "inv3", qty: 140 }, { invId: "inv5", qty: 90 }],
+      w4: [{ invId: "inv1", qty: 480 }, { invId: "inv2", qty: 160 }, { invId: "inv3", qty: 110 }, { invId: "inv4", qty: 400 }, { invId: "inv5", qty: 70 }],
+      w5: [{ invId: "inv1", qty: 600 }, { invId: "inv2", qty: 200 }, { invId: "inv3", qty: 140 }, { invId: "inv9", qty: 300 }],
+      w6: [{ invId: "inv1", qty: 1200 }, { invId: "inv2", qty: 400 }, { invId: "inv3", qty: 280 }, { invId: "inv9", qty: 300 }],
+      w7: [{ invId: "inv1", qty: 120 }, { invId: "inv2", qty: 40 }, { invId: "inv3", qty: 30 }, { invId: "inv4", qty: 200 }],
+      w8: [{ invId: "inv1", qty: 180 }, { invId: "inv2", qty: 60 }, { invId: "inv3", qty: 45 }, { invId: "inv4", qty: 200 }],
+
+      s1: [{ invId: "inv1", qty: 130 }, { invId: "inv2", qty: 45 }, { invId: "inv3", qty: 30 }, { invId: "inv7", qty: 1 }],
+      s2: [{ invId: "inv1", qty: 130 }, { invId: "inv2", qty: 45 }, { invId: "inv3", qty: 30 }, { invId: "inv7", qty: 1 }],
+      s3: [{ invId: "inv1", qty: 130 }, { invId: "inv2", qty: 45 }, { invId: "inv3", qty: 30 }, { invId: "inv7", qty: 1 }, { invId: "inv8", qty: 1 }],
+      s4: [{ invId: "inv7", qty: 1 }],
+      s5: [{ invId: "inv7", qty: 1 }, { invId: "inv8", qty: 2 }],
+      s6: [{ invId: "inv7", qty: 1 }, { invId: "inv8", qty: 2 }],
+
+      a1: [{ invId: "inv2", qty: 30 }, { invId: "inv3", qty: 40 }],
+      a2: [{ invId: "inv10", qty: 150 }, { invId: "inv3", qty: 60 }],
+      a3: [{ invId: "inv8", qty: 6 }, { invId: "inv2", qty: 40 }, { invId: "inv3", qty: 50 }],
+      a4: [{ invId: "inv10", qty: 200 }, { invId: "inv3", qty: 80 }, { invId: "inv8", qty: 2 }],
+      a5: [{ invId: "inv10", qty: 150 }, { invId: "inv3", qty: 60 }],
+
+      d1: [{ invId: "inv9", qty: 60 }],
+      d2: [{ invId: "inv9", qty: 60 }],
+      d3: [{ invId: "inv9", qty: 60 }],
+      d4: [{ invId: "inv9", qty: 50 }],
+      d5: [{ invId: "inv9", qty: 40 }]
+    };
+
+    var inventory = { auditCounts: {} };
+
+    function findInventoryItem(id) { return INVENTORY_ITEMS.filter(function (i) { return i.id === id; })[0]; }
+
+    function deductInventoryForCart(cart) {
+      cart.forEach(function (line) {
+        var bom = BOM_BY_PRODUCT[line.productId];
+        if (!bom) return;
+        bom.forEach(function (b) {
+          var item = findInventoryItem(b.invId);
+          if (!item) return;
+          item.stockQty = Math.max(0, item.stockQty - b.qty * line.qty);
+        });
+      });
+      renderInventoryLedger();
+      renderStockAudit();
+    }
+
+    function renderInventoryLedger() {
+      var wrap = $("#invLedgerRows");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      INVENTORY_ITEMS.forEach(function (item) {
+        var low = item.stockQty < item.reorderThreshold;
+        var row = el("div", "inv-row" + (low ? " inv-row--low" : ""));
+        row.appendChild(el("div", "inv-row__name", item.name));
+        row.appendChild(el("div", "tnum", item.stockQty.toLocaleString("en-US") + " " + item.unit));
+        row.appendChild(el("div", null, item.unit));
+        row.appendChild(el("div", "tnum", item.reorderThreshold.toLocaleString("en-US") + " " + item.unit));
+        row.appendChild(el("div", null, low ? "<span class='badge badge--out'>⚠️ Low Stock</span>" : "<span class='badge badge--ok'>OK</span>"));
+        wrap.appendChild(row);
+      });
+    }
+
+    function computeVariancePct(item) {
+      var physical = inventory.auditCounts[item.id];
+      if (physical == null || isNaN(physical)) return null;
+      if (item.stockQty === 0) return physical === 0 ? 0 : 100;
+      return ((item.stockQty - physical) / item.stockQty) * 100;
+    }
+
+    function renderStockAudit() {
+      var wrap = $("#auditRows");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      INVENTORY_ITEMS.forEach(function (item) {
+        var row = el("div", "audit-row");
+
+        var nameCell = el("div", "audit-row__name");
+        nameCell.appendChild(el("div", "audit-row__mat", item.name));
+        nameCell.appendChild(el("div", "audit-row__sys tnum", "System: " + item.stockQty.toLocaleString("en-US") + " " + item.unit));
+        row.appendChild(nameCell);
+
+        var input = document.createElement("input");
+        input.type = "number"; input.min = "0"; input.step = "1";
+        input.className = "audit-row__input tnum";
+        input.placeholder = "Physical count";
+        input.value = inventory.auditCounts[item.id] != null ? inventory.auditCounts[item.id] : "";
+
+        var varianceSpan = el("span", "audit-row__variance tnum", "—");
+
+        input.addEventListener("input", function () {
+          var val = parseFloat(input.value);
+          inventory.auditCounts[item.id] = isNaN(val) ? null : val;
+          updateVarianceCell(item, varianceSpan);
+        });
+        row.appendChild(input);
+
+        updateVarianceCell(item, varianceSpan);
+        row.appendChild(varianceSpan);
+
+        wrap.appendChild(row);
+      });
+    }
+
+    function updateVarianceCell(item, span) {
+      var pct = computeVariancePct(item);
+      if (pct === null) {
+        span.textContent = "—";
+        span.classList.remove("audit-row__variance--warn");
+        return;
+      }
+      var sign = pct > 0 ? "+" : "";
+      span.textContent = sign + pct.toFixed(1) + "%";
+      span.classList.toggle("audit-row__variance--warn", Math.abs(pct) > 5);
+    }
+
+    $("#submitAuditBtn").addEventListener("click", function () {
+      INVENTORY_ITEMS.forEach(function (item) {
+        var physical = inventory.auditCounts[item.id];
+        if (physical != null && !isNaN(physical)) { item.stockQty = physical; }
+      });
+      inventory.auditCounts = {};
+      renderInventoryLedger();
+      renderStockAudit();
+      showToast("Success: Inventory Re-aligned");
+    });
+
+    function populateInventorySelect(selectEl) {
+      selectEl.innerHTML = "";
+      INVENTORY_ITEMS.forEach(function (item) {
+        var opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = item.name + " (" + item.unit + ")";
+        selectEl.appendChild(opt);
+      });
+    }
+
+    $("#addStockBtn").addEventListener("click", function () {
+      var matId = $("#deliveryMaterial").value;
+      var qty = parseFloat($("#deliveryQty").value);
+      var invoice = $("#deliveryInvoice").value.trim();
+      if (!matId || isNaN(qty) || qty <= 0) { showToast("Enter a valid quantity received"); return; }
+      var item = findInventoryItem(matId);
+      if (!item) return;
+      item.stockQty += qty;
+      $("#deliveryQty").value = "";
+      $("#deliveryInvoice").value = "";
+      renderInventoryLedger();
+      renderStockAudit();
+      showToast("Stock added: +" + qty + " " + item.unit + " " + item.name + (invoice ? " · Invoice " + invoice : ""));
+    });
+
+    $("#deductStockBtn").addEventListener("click", function () {
+      var matId = $("#wastageMaterial").value;
+      var qty = parseFloat($("#wastageQty").value);
+      var reasonInput = $all('input[name="wastageReason"]').filter(function (r) { return r.checked; })[0];
+      var reason = reasonInput ? reasonInput.value : "Spoilage";
+      if (!matId || isNaN(qty) || qty <= 0) { showToast("Enter a valid quantity wasted"); return; }
+      var item = findInventoryItem(matId);
+      if (!item) return;
+      item.stockQty = Math.max(0, item.stockQty - qty);
+      $("#wastageQty").value = "";
+      renderInventoryLedger();
+      renderStockAudit();
+      showToast("Stock deducted: −" + qty + " " + item.unit + " " + item.name + " · " + reason);
+    });
+
+    $("#invTabs").addEventListener("click", function (ev) {
+      var btn = ev.target.closest(".inv-tab");
+      if (!btn) return;
+      switchInvTab(btn.dataset.invtab);
+    });
+    function switchInvTab(tab) {
+      $all(".inv-tab").forEach(function (b) {
+        var active = b.dataset.invtab === tab;
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-selected", active);
+      });
+      $("#invPanelLedger").hidden = tab !== "ledger";
+      $("#invPanelAudit").hidden = tab !== "audit";
+      $("#invPanelLogs").hidden = tab !== "logs";
+    }
+
     /* ---------------- init ---------------- */
     renderTabs();
     renderGrid();
@@ -1107,4 +1337,8 @@
     $("#cashExpected").textContent = peso(cashExpectedTotal());
     renderWasteRows();
     renderWizardChrome();
+    renderInventoryLedger();
+    renderStockAudit();
+    populateInventorySelect($("#deliveryMaterial"));
+    populateInventorySelect($("#wastageMaterial"));
   })();

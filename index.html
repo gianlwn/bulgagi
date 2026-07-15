@@ -340,74 +340,162 @@
         </div>
       </header>
 
-      <div class="kpi-row">
-        <div class="kpi-tile">
-          <span class="kpi-tile__label">Gross Sales Today</span>
-          <span class="kpi-tile__value tnum" id="kpiSales">₱18,940.00</span>
-        </div>
-        <div class="kpi-tile">
-          <span class="kpi-tile__label">Orders Today</span>
-          <span class="kpi-tile__value tnum" id="kpiOrders">146</span>
-        </div>
-        <div class="kpi-tile">
-          <span class="kpi-tile__label">Average Ticket</span>
-          <span class="kpi-tile__value tnum" id="kpiAvg">₱129.73</span>
-        </div>
-        <div class="kpi-tile mask-wrap" data-mask>
-          <div class="mask-content">
-            <span class="kpi-tile__label">Food Cost %</span>
-            <span class="kpi-tile__value tnum">31.4%</span>
+      <div class="dash-subtabs" id="dashSubtabs" role="tablist" aria-label="Dashboard sections">
+        <button class="dash-subtab is-active" data-subtab="sales" role="tab" aria-selected="true"
+          type="button">Sales Analytics</button>
+        <button class="dash-subtab" data-subtab="inventory" role="tab" aria-selected="false"
+          type="button">Inventory Console</button>
+      </div>
+
+      <div class="dash-subview" id="salesSubview">
+        <div class="kpi-row">
+          <div class="kpi-tile">
+            <span class="kpi-tile__label">Gross Sales Today</span>
+            <span class="kpi-tile__value tnum" id="kpiSales">₱18,940.00</span>
           </div>
-          <div class="mask-overlay">
-            <svg class="icon icon--sm">
-              <use href="#icon-lock" />
-            </svg>
-            <span>Manager only</span>
+          <div class="kpi-tile">
+            <span class="kpi-tile__label">Orders Today</span>
+            <span class="kpi-tile__value tnum" id="kpiOrders">146</span>
+          </div>
+          <div class="kpi-tile">
+            <span class="kpi-tile__label">Average Ticket</span>
+            <span class="kpi-tile__value tnum" id="kpiAvg">₱129.73</span>
+          </div>
+          <div class="kpi-tile mask-wrap" data-mask>
+            <div class="mask-content">
+              <span class="kpi-tile__label">Food Cost %</span>
+              <span class="kpi-tile__value tnum">31.4%</span>
+            </div>
+            <div class="mask-overlay">
+              <svg class="icon icon--sm">
+                <use href="#icon-lock" />
+              </svg>
+              <span>Manager only</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="panel">
+            <h3 class="panel__title">Sales Performance <span class="panel__sub">Last 7 days</span></h3>
+            <div id="chartBars"></div>
+            <h4 class="panel__subtitle">Top Sellers Today</h4>
+            <div class="rank-list" id="rankList"></div>
+          </div>
+
+          <div class="panel">
+            <h3 class="panel__title">Stock-Out Incidents <span class="panel__sub">Today</span></h3>
+            <div class="incident-list" id="incidentList"></div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="panel mask-wrap" data-mask>
+            <div class="mask-content">
+              <h3 class="panel__title">Staff Accountability <span class="panel__sub">This week</span></h3>
+              <div class="staff-table" id="staffTable"></div>
+            </div>
+            <div class="mask-overlay">
+              <svg class="icon icon--sm">
+                <use href="#icon-lock" />
+              </svg>
+              <span>Manager only</span>
+            </div>
+          </div>
+
+          <div class="panel mask-wrap" data-mask>
+            <div class="mask-content">
+              <h3 class="panel__title">Recent Shift Closeouts <span class="panel__sub">Wastage &amp; variance</span>
+              </h3>
+              <p class="closeout-summary-line">This week's total wastage: <strong class="tnum"
+                  id="wastageWeekTotal">₱438.00</strong></p>
+              <div class="closeout-list" id="closeoutList"></div>
+            </div>
+            <div class="mask-overlay">
+              <svg class="icon icon--sm">
+                <use href="#icon-lock" />
+              </svg>
+              <span>Manager only</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="dash-grid">
-        <div class="panel">
-          <h3 class="panel__title">Sales Performance <span class="panel__sub">Last 7 days</span></h3>
-          <div id="chartBars"></div>
-          <h4 class="panel__subtitle">Top Sellers Today</h4>
-          <div class="rank-list" id="rankList"></div>
+      <div class="dash-subview" id="inventorySubview" hidden>
+        <div class="inv-tabs" id="invTabs" role="tablist" aria-label="Inventory console sections">
+          <button class="inv-tab is-active" data-invtab="ledger" role="tab" aria-selected="true"
+            type="button">Live Raw Materials Ledger</button>
+          <button class="inv-tab" data-invtab="audit" role="tab" aria-selected="false" type="button">Stock
+            Audit</button>
+          <button class="inv-tab" data-invtab="logs" role="tab" aria-selected="false" type="button">Logs &amp;
+            Adjustments</button>
         </div>
 
-        <div class="panel">
-          <h3 class="panel__title">Stock-Out Incidents <span class="panel__sub">Today</span></h3>
-          <div class="incident-list" id="incidentList"></div>
-        </div>
-      </div>
-
-      <div class="dash-grid">
-        <div class="panel mask-wrap" data-mask>
-          <div class="mask-content">
-            <h3 class="panel__title">Staff Accountability <span class="panel__sub">This week</span></h3>
-            <div class="staff-table" id="staffTable"></div>
-          </div>
-          <div class="mask-overlay">
-            <svg class="icon icon--sm">
-              <use href="#icon-lock" />
-            </svg>
-            <span>Manager only</span>
+        <div class="inv-panel" id="invPanelLedger" data-invpanel="ledger">
+          <div class="panel">
+            <h3 class="panel__title">Live Raw Materials Ledger <span class="panel__sub">Read-only · auto-updates on
+                sale</span></h3>
+            <div class="table-scroll">
+              <div class="inv-grid" id="invLedgerGrid">
+                <div class="inv-grid__head">
+                  <span>Material</span><span>Current Stock</span><span>Base Unit</span><span>Reorder
+                    Threshold</span><span>Status</span>
+                </div>
+                <div class="inv-rows" id="invLedgerRows"></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="panel mask-wrap" data-mask>
-          <div class="mask-content">
-            <h3 class="panel__title">Recent Shift Closeouts <span class="panel__sub">Wastage &amp; variance</span>
-            </h3>
-            <p class="closeout-summary-line">This week's total wastage: <strong class="tnum"
-                id="wastageWeekTotal">₱438.00</strong></p>
-            <div class="closeout-list" id="closeoutList"></div>
+        <div class="inv-panel" id="invPanelAudit" data-invpanel="audit" hidden>
+          <div class="panel">
+            <h3 class="panel__title">Stock Audit <span class="panel__sub">Reconcile physical counts against system
+                stock</span></h3>
+            <div class="table-scroll">
+              <div class="audit-grid" id="auditGrid">
+                <div class="audit-grid__head">
+                  <span>Material &amp; System Stock</span><span>Physical Count</span><span>Variance</span>
+                </div>
+                <div class="audit-rows" id="auditRows"></div>
+              </div>
+            </div>
+            <button class="btn btn--primary btn--block" id="submitAuditBtn" type="button">Submit Audit &amp;
+              Re-align</button>
           </div>
-          <div class="mask-overlay">
-            <svg class="icon icon--sm">
-              <use href="#icon-lock" />
-            </svg>
-            <span>Manager only</span>
+        </div>
+
+        <div class="inv-panel" id="invPanelLogs" data-invpanel="logs" hidden>
+          <div class="log-cards">
+            <div class="panel log-card">
+              <h3 class="panel__title">Log Delivery Intake</h3>
+              <div class="ck-field"><label for="deliveryMaterial">Raw Material</label>
+                <select id="deliveryMaterial"></select>
+              </div>
+              <div class="ck-field"><label for="deliveryQty">Quantity Received</label><input id="deliveryQty"
+                  type="number" min="0" step="1" placeholder="0" /></div>
+              <div class="ck-field"><label for="deliveryInvoice">Supplier Invoice #</label><input id="deliveryInvoice"
+                  type="text" placeholder="e.g. INV-20487" /></div>
+              <button class="btn btn--primary btn--block" id="addStockBtn" type="button">+ Add to Stock</button>
+            </div>
+
+            <div class="panel log-card">
+              <h3 class="panel__title">Log Wastage</h3>
+              <div class="ck-field"><label for="wastageMaterial">Raw Material</label>
+                <select id="wastageMaterial"></select>
+              </div>
+              <div class="ck-field"><label for="wastageQty">Quantity Wasted</label><input id="wastageQty"
+                  type="number" min="0" step="1" placeholder="0" /></div>
+              <div class="ck-field">
+                <label>Reason</label>
+                <div class="radio-list" id="wastageReasonList">
+                  <label class="radio-opt"><input type="radio" name="wastageReason" value="Spoilage" checked>
+                    Spoilage</label>
+                  <label class="radio-opt"><input type="radio" name="wastageReason" value="Spilled"> Spilled</label>
+                  <label class="radio-opt"><input type="radio" name="wastageReason" value="Expired"> Expired</label>
+                </div>
+              </div>
+              <button class="btn btn--primary btn--block" id="deductStockBtn" type="button">− Deduct Stock</button>
+            </div>
           </div>
         </div>
       </div>
