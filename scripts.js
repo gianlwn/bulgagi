@@ -56,21 +56,33 @@
       activeCat: "chicken",
       cart: [],
       ticketNo: 47,
-      heldOrders: [
-        {
-          ticket: 45, items: 3, ago: "held 6 min ago", cart: [
-            { uid: "h1", productId: "c3", name: "Whole Bucket", flavor: "Honey Garlic", price: 555, qty: 1 },
-            { uid: "h2", productId: "a2", name: "Regular Fries", flavor: null, price: 50, qty: 2 }
-          ]
-        },
-        {
-          ticket: 46, items: 1, ago: "held 2 min ago", cart: [
-            { uid: "h3", productId: "s3", name: "Chick n' Cheese", flavor: null, price: 115, qty: 1 }
-          ]
-        }
-      ],
+      fbMode: false,
       openFlavorCard: null
     };
+
+    // Unified order queue shared by Screen 1 (Held Orders bar) and Screen 2 (Order Queue).
+    // order: { id, ticket, type: 'instore'|'facebook'|'grabfood'|'foodpanda',
+    //          status: 'HELD'|'PENDING_PAYMENT'|'PREPARING'|'READY',
+    //          cart, customer: {name,phone,address}|null, payment: {method}|null, total }
+    var orders = [
+      {
+        id: "seed1", ticket: 45, type: "instore", status: "HELD", total: 655,
+        customer: null, payment: null,
+        cart: [
+          { uid: "h1", productId: "c3", name: "Whole Bucket", flavor: "Honey Garlic", price: 555, qty: 1 },
+          { uid: "h2", productId: "a2", name: "Regular Fries", flavor: null, price: 50, qty: 2 }
+        ]
+      },
+      {
+        id: "seed2", ticket: 46, type: "instore", status: "HELD", total: 115,
+        customer: null, payment: null,
+        cart: [
+          { uid: "h3", productId: "s3", name: "Chick n' Cheese", flavor: null, price: 115, qty: 1 }
+        ]
+      }
+    ];
+
+    var modalState = { mode: null, order: null }; // mode: 'new-fb' | 'view-fb' | 'view-instore'
 
     var pin = { entry: "", attemptsLeft: 3, locked: false, lockRemaining: 30, timer: null, context: "", onSuccess: null };
     var CORRECT_PIN = "1234";
@@ -87,6 +99,19 @@
       t.hidden = false;
       clearTimeout(showToast._t);
       showToast._t = setTimeout(function () { t.hidden = true; }, 2600);
+    }
+
+    function lineTotal(cart) { return cart.reduce(function (s, l) { return s + l.price * l.qty; }, 0); }
+
+    function nextTicket() {
+      var t = state.ticketNo;
+      state.ticketNo += 1;
+      updateTicketDisplays();
+      return t;
+    }
+    function updateTicketDisplays() {
+      $("#ticketNo").textContent = "#" + state.ticketNo;
+      $("#ticketNoSide").textContent = "#" + state.ticketNo;
     }
 
     /* ---------------- category tabs ---------------- */
@@ -196,7 +221,7 @@
       });
     }
 
-    function cartTotal() { return state.cart.reduce(function (s, l) { return s + l.price * l.qty; }, 0); }
+    function cartTotal() { return lineTotal(state.cart); }
 
     function renderCart() {
       var wrap = $("#orderLines");
@@ -237,69 +262,267 @@
       $("#sumVatable").textContent = peso(vatable);
       $("#sumVat").textContent = peso(vat);
       $("#sumTotal").textContent = peso(total);
-      $("#chargeAmt").textContent = peso(total);
       $("#orderTotals").hidden = state.cart.length === 0;
 
-      $("#holdBtn").disabled = state.cart.length === 0;
-      $("#chargeBtn").disabled = state.cart.length === 0;
+      updateOrderActionsUI();
     }
 
-    /* ---------------- held orders ---------------- */
+    /* ---------------- Facebook mode / order actions ---------------- */
+    function updateOrderActionsUI() {
+      var holdBtn = $("#holdBtn");
+      var chargeBtn = $("#chargeBtn");
+      var actions = $("#orderActions");
+      holdBtn.hidden = state.fbMode;
+      actions.classList.toggle("order-actions--single", state.fbMode);
+      if (state.fbMode) {
+        chargeBtn.textContent = "Generate QR Checkout";
+      } else {
+        chargeBtn.innerHTML = 'Charge <span class="tnum">' + peso(cartTotal()) + '</span>';
+      }
+      chargeBtn.disabled = state.cart.length === 0;
+      holdBtn.disabled = state.cart.length === 0;
+    }
+
+    $("#fbModeToggle").addEventListener("change", function (e) {
+      state.fbMode = e.target.checked;
+      updateOrderActionsUI();
+    });
+
+    $("#holdBtn").addEventListener("click", function () {
+      if (state.cart.length === 0) return;
+      var order = {
+        id: "ord" + Date.now(), ticket: state.ticketNo, type: "instore", status: "HELD",
+        cart: state.cart, customer: null, payment: null, total: cartTotal()
+      };
+      orders.push(order);
+      state.cart = [];
+      nextTicket();
+      renderCart();
+      renderHeld();
+      renderQueue();
+      showToast("Order held — new ticket opened");
+    });
+
+    function chargeCurrentOrder() {
+      if (state.cart.length === 0) return;
+      var order = {
+        id: "ord" + Date.now(), ticket: state.ticketNo, type: "instore", status: "PREPARING",
+        cart: state.cart, customer: null, payment: null, total: cartTotal()
+      };
+      orders.push(order);
+      var amt = peso(order.total);
+      var t = order.ticket;
+      state.cart = [];
+      nextTicket();
+      renderCart();
+      renderQueue();
+      showToast("Ticket #" + t + " sent to kitchen · " + amt + " charged");
+    }
+
+    $("#chargeBtn").addEventListener("click", function () {
+      if (this.disabled) return;
+      if (state.fbMode) { openFacebookModal(); }
+      else { chargeCurrentOrder(); }
+    });
+
+    /* ---------------- held orders bar ---------------- */
     function renderHeld() {
       var wrap = $("#heldChips");
       wrap.innerHTML = "";
-      if (state.heldOrders.length === 0) {
+      var list = orders.filter(function (o) { return o.status === "HELD" || o.status === "PENDING_PAYMENT"; });
+      if (list.length === 0) {
         wrap.appendChild(el("span", "held-strip__empty", "No held orders"));
         return;
       }
-      state.heldOrders.forEach(function (h) {
+      list.forEach(function (o) {
         var chip = el("button", "held-chip");
         chip.type = "button";
-        chip.appendChild(el("div", "held-chip__top", "<span>#" + h.ticket + "</span><span>" + h.items + " item" + (h.items === 1 ? "" : "s") + "</span>"));
-        chip.appendChild(el("div", "held-chip__meta", h.ago));
-        chip.addEventListener("click", function () { resumeHeld(h.ticket); });
+        var itemCount = o.cart.reduce(function (s, l) { return s + l.qty; }, 0);
+        var tag = o.type === "facebook" ? "FB" : "In-Store";
+        chip.appendChild(el("div", "held-chip__top", "<span>#" + o.ticket + " · " + tag + "</span><span>" + itemCount + " item" + (itemCount === 1 ? "" : "s") + "</span>"));
+        chip.appendChild(el("div", "held-chip__meta", o.status === "PENDING_PAYMENT" ? "Pending payment" : "Held"));
+        chip.addEventListener("click", function () { openExistingOrderModal(o.id); });
         wrap.appendChild(chip);
       });
     }
 
-    function resumeHeld(ticket) {
-      var idx = state.heldOrders.findIndex(function (h) { return h.ticket === ticket; });
-      if (idx === -1) return;
-      var h = state.heldOrders[idx];
-      if (state.cart.length > 0) {
-        showToast("Hold current order first before resuming another ticket");
-        return;
-      }
-      state.cart = h.cart;
-      state.heldOrders.splice(idx, 1);
-      state.ticketNo = h.ticket;
-      $("#ticketNo").textContent = "#" + state.ticketNo;
-      $("#ticketNoSide").textContent = "#" + state.ticketNo;
-      renderCart(); renderHeld();
-      showToast("Resumed ticket #" + h.ticket);
+    /* ---------------- order detail modal ---------------- */
+    function openFacebookModal() {
+      if (state.cart.length === 0) return;
+      var draft = {
+        id: null, ticket: state.ticketNo, type: "facebook", status: "PENDING_PAYMENT",
+        cart: state.cart.slice(), customer: { name: "", phone: "", address: "" }, payment: { method: "gcash" },
+        total: cartTotal()
+      };
+      modalState = { mode: "new-fb", order: draft };
+      renderOrderModal();
+      $("#orderModalScrim").hidden = false;
     }
 
-    $("#holdBtn").addEventListener("click", function () {
-      if (state.cart.length === 0) return;
-      state.heldOrders.push({ ticket: state.ticketNo, items: state.cart.reduce(function (s, l) { return s + l.qty; }, 0), ago: "held just now", cart: state.cart });
-      state.cart = [];
-      state.ticketNo += 1;
-      $("#ticketNo").textContent = "#" + state.ticketNo;
-      $("#ticketNoSide").textContent = "#" + state.ticketNo;
-      renderCart(); renderHeld();
-      showToast("Order held — new ticket opened");
+    function openExistingOrderModal(orderId) {
+      var order = orders.filter(function (o) { return o.id === orderId; })[0];
+      if (!order) return;
+      var mode = order.type === "facebook" ? "view-fb" : "view-instore";
+      var draft = {
+        id: order.id, ticket: order.ticket, type: order.type, status: order.status,
+        cart: order.cart, total: order.total,
+        customer: order.customer ? { name: order.customer.name, phone: order.customer.phone, address: order.customer.address } : { name: "", phone: "", address: "" },
+        payment: order.payment ? { method: order.payment.method } : { method: "gcash" }
+      };
+      modalState = { mode: mode, order: draft };
+      renderOrderModal();
+      $("#orderModalScrim").hidden = false;
+    }
+
+    function closeOrderModal() {
+      $("#orderModalScrim").hidden = true;
+      modalState = { mode: null, order: null };
+    }
+
+    function renderOrderModal() {
+      var mode = modalState.mode, order = modalState.order;
+      var isFb = order.type === "facebook";
+
+      $("#orderModalTitle").textContent = isFb ? "Facebook Order" : "In-Store Held Order";
+      $("#orderModalTicket").textContent = "Ticket #" + order.ticket;
+
+      var pill = $("#orderModalStatus");
+      pill.textContent = order.status === "PENDING_PAYMENT" ? "PENDING PAYMENT" : "HELD";
+
+      var itemsWrap = $("#orderModalItems");
+      itemsWrap.innerHTML = "";
+      order.cart.forEach(function (l) {
+        var li = document.createElement("li");
+        li.innerHTML = "<span>" + l.qty + "x " + l.name + (l.flavor ? " <em>· " + l.flavor + "</em>" : "") + "</span><span class='tnum'>" + peso(l.price * l.qty) + "</span>";
+        itemsWrap.appendChild(li);
+      });
+      order.total = lineTotal(order.cart);
+      $("#orderModalTotal").textContent = peso(order.total);
+
+      $("#orderModalCustomerBlock").hidden = !isFb;
+      $("#orderModalPaymentBlock").hidden = !isFb;
+
+      if (isFb) {
+        $("#modalCustName").value = order.customer.name || "";
+        $("#modalCustPhone").value = order.customer.phone || "";
+        $("#modalCustAddr").value = order.customer.address || "";
+        var method = order.payment.method || "gcash";
+        $all(".ck-paymethod", $("#modalPayMethods")).forEach(function (b) { b.classList.toggle("is-active", b.dataset.method === method); });
+        $("#modalQrPanel").hidden = method !== "qrph";
+      }
+
+      var secondaryBtn = $("#orderModalSecondaryBtn");
+      var primaryBtn = $("#orderModalPrimaryBtn");
+      if (mode === "new-fb") {
+        secondaryBtn.textContent = "Cancel";
+        primaryBtn.textContent = "Save & Move to Pending";
+      } else if (mode === "view-fb") {
+        secondaryBtn.textContent = "Save Changes";
+        primaryBtn.textContent = "Simulate Payment Success";
+      } else if (mode === "view-instore") {
+        secondaryBtn.textContent = "Resume on POS";
+        primaryBtn.textContent = "Release to Kitchen";
+      }
+    }
+
+    $("#orderModalCloseBtn").addEventListener("click", closeOrderModal);
+
+    $("#modalPayMethods").addEventListener("click", function (ev) {
+      var btn = ev.target.closest(".ck-paymethod");
+      if (!btn || !modalState.order) return;
+      $all(".ck-paymethod", $("#modalPayMethods")).forEach(function (b) { b.classList.toggle("is-active", b === btn); });
+      var method = btn.dataset.method;
+      modalState.order.payment.method = method;
+      $("#modalQrPanel").hidden = method !== "qrph";
     });
 
-    $("#chargeBtn").addEventListener("click", function () {
-      if (state.cart.length === 0) return;
-      var amt = peso(cartTotal());
-      var t = state.ticketNo;
-      showToast("Ticket #" + t + " sent to kitchen · " + amt + " charged");
+    function readModalCustomerFields() {
+      return {
+        name: $("#modalCustName").value.trim(),
+        phone: $("#modalCustPhone").value.trim(),
+        address: $("#modalCustAddr").value.trim()
+      };
+    }
+
+    function saveFacebookDraft() {
+      var customer = readModalCustomerFields();
+      if (!customer.name || !customer.phone || !customer.address) {
+        showToast("Fill in customer name, contact number, and delivery address");
+        return;
+      }
+      var order = modalState.order;
+      order.id = "ord" + Date.now();
+      order.customer = customer;
+      order.total = lineTotal(order.cart);
+      orders.push(order);
+
       state.cart = [];
-      state.ticketNo += 1;
-      $("#ticketNo").textContent = "#" + state.ticketNo;
-      $("#ticketNoSide").textContent = "#" + state.ticketNo;
+      state.fbMode = false;
+      $("#fbModeToggle").checked = false;
+      nextTicket();
       renderCart();
+      closeOrderModal();
+      renderHeld();
+      renderQueue();
+      showToast("Ticket #" + order.ticket + " saved to Pending — FB");
+    }
+
+    function updateFacebookOrder() {
+      var customer = readModalCustomerFields();
+      if (!customer.name || !customer.phone || !customer.address) {
+        showToast("Fill in customer name, contact number, and delivery address");
+        return;
+      }
+      var real = orders.filter(function (o) { return o.id === modalState.order.id; })[0];
+      if (!real) return;
+      real.customer = customer;
+      real.payment.method = modalState.order.payment.method;
+      closeOrderModal();
+      renderHeld();
+      renderQueue();
+      showToast("Changes saved for ticket #" + real.ticket);
+    }
+
+    function releaseToKitchen(orderId) {
+      var order = orders.filter(function (o) { return o.id === orderId; })[0];
+      if (!order) return;
+      order.status = "PREPARING";
+      closeOrderModal();
+      renderHeld();
+      renderQueue();
+      showToast("Ticket #" + order.ticket + " released to kitchen");
+    }
+
+    function resumeOnPos(orderId) {
+      if (state.cart.length > 0) {
+        showToast("Hold or clear the current order before resuming another ticket");
+        return;
+      }
+      var idx = orders.findIndex(function (o) { return o.id === orderId; });
+      if (idx === -1) return;
+      var order = orders[idx];
+      state.cart = order.cart;
+      orders.splice(idx, 1);
+      state.ticketNo = order.ticket;
+      updateTicketDisplays();
+      renderCart();
+      closeOrderModal();
+      renderHeld();
+      renderQueue();
+      showToast("Resumed ticket #" + order.ticket);
+    }
+
+    $("#orderModalSecondaryBtn").addEventListener("click", function () {
+      if (!modalState.mode) return;
+      if (modalState.mode === "new-fb") { closeOrderModal(); }
+      else if (modalState.mode === "view-fb") { updateFacebookOrder(); }
+      else if (modalState.mode === "view-instore") { resumeOnPos(modalState.order.id); }
+    });
+    $("#orderModalPrimaryBtn").addEventListener("click", function () {
+      if (!modalState.mode) return;
+      if (modalState.mode === "new-fb") { saveFacebookDraft(); }
+      else if (modalState.mode === "view-fb") { releaseToKitchen(modalState.order.id); }
+      else if (modalState.mode === "view-instore") { releaseToKitchen(modalState.order.id); }
     });
 
     /* ---------------- manager pin modal ---------------- */
@@ -397,7 +620,7 @@
     /* ---------------- screen switcher ---------------- */
     var VIEW_MAP = {
       pos: { view: "posView", tab: "tabPos" },
-      checkout: { view: "checkoutView", tab: "tabCheckout" },
+      queue: { view: "queueView", tab: "tabQueue" },
       wizard: { view: "wizardView", tab: "tabWizard" },
       dashboard: { view: "dashboardView", tab: "tabDashboard" }
     };
@@ -412,62 +635,114 @@
         tab.classList.toggle("is-active", isActive);
         tab.setAttribute("aria-selected", isActive);
       });
+      if (v === "queue") { renderQueue(); }
       if (v === "dashboard") { renderDashboard(); }
     }
 
-    /* ---------------- checkout screen logic ---------------- */
-    var refDigits = "";
-    var screenshotAttached = false;
+    /* ---------------- Screen 2 — centralized order queue ---------------- */
+    var TYPE_LABEL = { instore: "In-Store", facebook: "Facebook", grabfood: "GrabFood", foodpanda: "Foodpanda" };
 
-    $("#refInput").addEventListener("input", function (e) {
-      var digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 13);
-      refDigits = digitsOnly;
-      e.target.value = digitsOnly;
-      $("#refStatus").textContent = digitsOnly.length + "/13";
-      var valid = digitsOnly.length === 13;
-      e.target.classList.toggle("is-valid", valid);
-      var hint = $("#refHint");
-      if (digitsOnly.length > 0 && digitsOnly.length < 13) {
-        hint.textContent = "Enter " + (13 - digitsOnly.length) + " more digit" + (13 - digitsOnly.length === 1 ? "" : "s") + ".";
-        hint.classList.add("is-error");
-      } else {
-        hint.textContent = "Numbers only, exactly 13 digits.";
-        hint.classList.remove("is-error");
+    function renderQueueCard(order) {
+      var card = el("div", "queue-card");
+
+      var top = el("div", "queue-card__top");
+      top.appendChild(el("span", "queue-card__ticket tnum", "#" + order.ticket));
+      top.appendChild(el("span", "queue-card__type queue-card__type--" + order.type, TYPE_LABEL[order.type]));
+      card.appendChild(top);
+
+      var itemCount = order.cart.reduce(function (s, l) { return s + l.qty; }, 0);
+      card.appendChild(el("div", "queue-card__meta", itemCount + " item" + (itemCount === 1 ? "" : "s") + " · " + peso(lineTotal(order.cart))));
+
+      if (order.customer && order.customer.name) {
+        card.appendChild(el("div", "queue-card__customer", order.customer.name));
       }
-      updateConfirmState();
-    });
 
-    $("#dropzone").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { $("#fileInput").click(); } });
-    $("#fileInput").addEventListener("change", function (e) {
-      var f = e.target.files[0];
-      if (!f) return;
-      screenshotAttached = true;
-      $("#attachmentName").textContent = f.name + " · " + Math.max(1, Math.round(f.size / 1024)) + " KB";
-      $("#attachment").hidden = false;
-      $("#dropzoneText").textContent = "Replace screenshot";
-      updateConfirmState();
-    });
+      var actions = el("div", "queue-card__actions");
+      if (order.status === "HELD" || order.status === "PENDING_PAYMENT") {
+        var openBtn = el("button", "btn btn--ghost btn--sm", "Open Details");
+        openBtn.type = "button";
+        openBtn.addEventListener("click", function () { openExistingOrderModal(order.id); });
+        actions.appendChild(openBtn);
+      } else if (order.status === "PREPARING") {
+        var readyBtn = el("button", "btn btn--primary btn--sm", "Mark Ready");
+        readyBtn.type = "button";
+        readyBtn.addEventListener("click", function () { markReady(order.id); });
+        actions.appendChild(readyBtn);
+      } else if (order.status === "READY") {
+        var completeBtn = el("button", "btn btn--primary btn--sm", "Complete Order");
+        completeBtn.type = "button";
+        completeBtn.addEventListener("click", function () { completeOrder(order.id); });
+        actions.appendChild(completeBtn);
+      }
+      card.appendChild(actions);
 
-    function updateConfirmState() {
-      var ready = refDigits.length === 13 && screenshotAttached;
-      var btn = $("#confirmOrderBtn");
-      btn.disabled = !ready;
-      $("#confirmBtnLabel").textContent = ready ? "Confirm Order" :
-        (refDigits.length < 13 && !screenshotAttached ? "Enter reference number & upload screenshot" :
-          refDigits.length < 13 ? "Enter your 13-digit reference number" : "Upload your payment screenshot");
+      return card;
     }
 
-    $("#confirmOrderBtn").addEventListener("click", function () {
-      if (this.disabled) return;
-      var btn = this;
-      btn.disabled = true;
-      $("#confirmBtnLabel").innerHTML = "Submitting…";
-      setTimeout(function () {
-        $all(".ck-block", $("#checkoutScroll")).forEach(function (b) { b.style.display = "none"; });
-        btn.style.display = "none";
-        $("#ckSuccess").hidden = false;
-      }, 1100);
-    });
+    function fillQueueColumn(sel, list) {
+      var wrap = $(sel);
+      wrap.innerHTML = "";
+      if (list.length === 0) {
+        wrap.appendChild(el("p", "queue-col__empty", "No orders here."));
+        return;
+      }
+      list.forEach(function (o) { wrap.appendChild(renderQueueCard(o)); });
+    }
+
+    function renderQueue() {
+      var pending = orders.filter(function (o) { return o.status === "HELD" || o.status === "PENDING_PAYMENT"; });
+      var preparing = orders.filter(function (o) { return o.status === "PREPARING"; });
+      var ready = orders.filter(function (o) { return o.status === "READY"; });
+
+      fillQueueColumn("#colPending", pending);
+      fillQueueColumn("#colPreparing", preparing);
+      fillQueueColumn("#colReady", ready);
+      $("#countPending").textContent = String(pending.length);
+      $("#countPreparing").textContent = String(preparing.length);
+      $("#countReady").textContent = String(ready.length);
+    }
+
+    function markReady(orderId) {
+      var order = orders.filter(function (o) { return o.id === orderId; })[0];
+      if (!order) return;
+      order.status = "READY";
+      renderQueue();
+      showToast("Ticket #" + order.ticket + " marked ready for dispatch");
+    }
+
+    function completeOrder(orderId) {
+      var idx = orders.findIndex(function (o) { return o.id === orderId; });
+      if (idx === -1) return;
+      var order = orders[idx];
+      orders.splice(idx, 1);
+      state.dashboard.grossSales += order.total;
+      state.dashboard.ordersToday += 1;
+      updateDashboardKpis();
+      renderQueue();
+      showToast("Ticket #" + order.ticket + " completed · sales updated");
+    }
+
+    var SAMPLE_QTY = [1, 1, 2];
+    function simulatePlatformOrder(type) {
+      var pool = PRODUCTS.filter(function (p) { return p.stock !== "out"; });
+      var itemCount = 1 + Math.floor(Math.random() * 2);
+      var cart = [];
+      for (var i = 0; i < itemCount; i++) {
+        var p = pool[Math.floor(Math.random() * pool.length)];
+        var flavor = p.flavors ? FLAVORS[Math.floor(Math.random() * FLAVORS.length)] : null;
+        cart.push({
+          uid: p.id + "-" + i + "-" + Date.now(), productId: p.id, name: p.name, flavor: flavor,
+          price: p.price, qty: SAMPLE_QTY[Math.floor(Math.random() * SAMPLE_QTY.length)]
+        });
+      }
+      var ticket = nextTicket();
+      var order = { id: "ord" + Date.now(), ticket: ticket, type: type, status: "PREPARING", cart: cart, customer: null, payment: { method: "platform-prepaid" }, total: lineTotal(cart) };
+      orders.push(order);
+      renderQueue();
+      showToast(TYPE_LABEL[type] + " order #" + ticket + " received — pre-paid, sent to kitchen");
+    }
+    $("#simGrabBtn").addEventListener("click", function () { simulatePlatformOrder("grabfood"); });
+    $("#simPandaBtn").addEventListener("click", function () { simulatePlatformOrder("foodpanda"); });
 
     /* ---------------- shift closeout wizard (Screen 3) ---------------- */
     var RAW_MATERIALS = [
@@ -700,6 +975,7 @@
 
     state.role = "manager";
     state.wastageWeekTotal = 438;
+    state.dashboard = { grossSales: 18940, ordersToday: 146 };
     state.closeouts = [
       { dateLabel: "Jul 13, 2026", ticketRange: "#1–#44", variance: -10, wasteValue: 248, closedBy: "M. Dela Cruz" },
       { dateLabel: "Jul 12, 2026", ticketRange: "#1–#51", variance: 0, wasteValue: 190, closedBy: "J. Ramos" }
@@ -803,7 +1079,14 @@
       });
     }
 
+    function updateDashboardKpis() {
+      $("#kpiSales").textContent = peso(state.dashboard.grossSales);
+      $("#kpiOrders").textContent = String(state.dashboard.ordersToday);
+      $("#kpiAvg").textContent = peso(state.dashboard.grossSales / state.dashboard.ordersToday);
+    }
+
     function renderDashboard() {
+      updateDashboardKpis();
       renderChart();
       renderRankList();
       renderIncidents();
@@ -817,6 +1100,8 @@
     renderGrid();
     renderCart();
     renderHeld();
+    renderQueue();
+    updateDashboardKpis();
     $("#cashFloat").textContent = peso(CASH_FLOAT);
     $("#cashSystemSales").textContent = peso(CASH_SYSTEM_SALES);
     $("#cashExpected").textContent = peso(cashExpectedTotal());

@@ -83,11 +83,11 @@
   <div class="app">
 
     <div class="proto-switch" role="tablist" aria-label="Prototype screens">
-      <span class="proto-switch__label">Build Pass 1</span>
+      <span class="proto-switch__label">Build Pass 2</span>
       <button class="proto-switch__btn is-active" id="tabPos" role="tab" aria-selected="true">Screen 1 · In-Store
         POS</button>
-      <button class="proto-switch__btn" id="tabCheckout" role="tab" aria-selected="false">Screen 2 · Online
-        Checkout</button>
+      <button class="proto-switch__btn" id="tabQueue" role="tab" aria-selected="false">Screen 2 · Order
+        Queue</button>
       <button class="proto-switch__btn" id="tabWizard" role="tab" aria-selected="false">Screen 3 · Shift
         Closeout</button>
       <button class="proto-switch__btn" id="tabDashboard" role="tab" aria-selected="false">Screen 4 ·
@@ -136,6 +136,14 @@
             <span class="order-panel__ticket">Ticket <span class="tnum" id="ticketNoSide">#47</span></span>
           </div>
 
+          <div class="fb-toggle-row">
+            <label class="fb-toggle" for="fbModeToggle">
+              <input type="checkbox" id="fbModeToggle">
+              <span class="fb-toggle__track"><span class="fb-toggle__thumb"></span></span>
+              <span class="fb-toggle__label">Facebook Order</span>
+            </label>
+          </div>
+
           <div class="order-lines" id="orderLines">
             <p class="order-empty" id="orderEmpty">No items yet — tap the menu to add.</p>
           </div>
@@ -148,111 +156,59 @@
                 id="sumTotal">₱0.00</span></div>
           </div>
 
-          <div class="order-actions">
+          <div class="order-actions" id="orderActions">
             <button class="btn btn--ghost" id="holdBtn" disabled>Hold Order</button>
-            <button class="btn btn--primary" id="chargeBtn" disabled>Charge <span class="tnum"
-                id="chargeAmt">₱0.00</span></button>
+            <button class="btn btn--primary" id="chargeBtn" disabled>Charge <span class="tnum">₱0.00</span></button>
           </div>
         </aside>
       </div>
     </section>
 
-    <!-- ============ SCREEN 2 — ONLINE / FACEBOOK CHECKOUT ============ -->
-    <section id="checkoutView" class="checkout" hidden>
-      <div class="phone">
-        <div class="phone__bar">
-          <svg class="icon">
-            <use href="#icon-back" />
-          </svg>
-          <div class="phone__bar-title">
-            <strong>Bulgagi Foods</strong>
-            <span>Facebook Checkout</span>
-          </div>
-          <span class="phone__bar-dot" aria-hidden="true"></span>
+    <!-- ============ SCREEN 2 — CENTRALIZED ORDER QUEUE ============ -->
+    <section id="queueView" class="queue" hidden>
+      <header class="pos-topbar">
+        <div class="brand-mark">
+          <img class="brand-mark__glyph" src="logo.png" alt="" aria-hidden="true">
+          <span class="brand-mark__text">
+            <strong>Order Queue</strong>
+            <em>All channels · live kitchen line</em>
+          </span>
         </div>
+      </header>
 
-        <div class="phone__scroll" id="checkoutScroll">
+      <div class="queue-body">
+        <aside class="sandbox-panel">
+          <h3 class="sandbox-panel__title">Platform Injection Sandbox</h3>
+          <p class="sandbox-panel__hint">Simulate an incoming delivery-platform order. These arrive pre-paid and
+            land directly in the Preparing column.</p>
+          <button class="btn btn--ghost btn--block" id="simGrabBtn" type="button">Simulate Incoming GrabFood
+            Order</button>
+          <button class="btn btn--ghost btn--block" id="simPandaBtn" type="button">Simulate Incoming Foodpanda
+            Order</button>
+        </aside>
 
-          <section class="ck-block">
-            <h3 class="ck-block__title">Order Summary <span class="ck-ref">FB‑2291</span></h3>
-            <ul class="ck-order-list">
-              <li><span>1x Half Bucket Combo <em>· Honey Garlic</em></span><span class="tnum">₱400.00</span></li>
-              <li><span>1x Kimchi Fried Rice add-on</span><span class="tnum">₱35.00</span></li>
-              <li><span>1x 1.5L Coke</span><span class="tnum">₱100.00</span></li>
-            </ul>
-            <div class="ck-order-total"><span>Total to pay</span><span class="tnum">₱535.00</span></div>
-          </section>
-
-          <section class="ck-block">
-            <h3 class="ck-block__title">Delivery Details</h3>
-            <div class="ck-field"><label for="ckName">Full name</label><input id="ckName" type="text"
-                value="Maricel Ong" /></div>
-            <div class="ck-field"><label for="ckPhone">Contact number</label><input id="ckPhone" type="tel"
-                value="0917 555 0142" /></div>
-            <div class="ck-field"><label for="ckAddr">Delivery address</label><textarea id="ckAddr"
-                rows="2">Blk 4 Lot 12, Sampaguita St., Brgy. San Isidro</textarea></div>
-          </section>
-
-          <section class="ck-block">
-            <h3 class="ck-block__title">Payment Method</h3>
-            <div class="ck-paymethods">
-              <button class="ck-paymethod is-active" type="button">GCash</button>
-              <button class="ck-paymethod" type="button" disabled title="Available soon">QR Ph</button>
+        <div class="queue-columns">
+          <div class="queue-col" data-col="pending">
+            <div class="queue-col__head">
+              <h3>Pending Verification / Hold</h3>
+              <span class="queue-col__count tnum" id="countPending">0</span>
             </div>
-
-            <div class="gcash-panel">
-              <p class="gcash-panel__instr">Send the exact amount to <strong>GCash 0917‑214‑8830</strong> · Bulgagi
-                Foods,
-                then enter the reference number below.</p>
-
-              <div class="ck-field">
-                <label for="refInput">GCash Reference Number</label>
-                <div class="ref-input-wrap">
-                  <input id="refInput" class="ref-input tnum" inputmode="numeric" autocomplete="off"
-                    placeholder="0000 0000 0000" maxlength="13" />
-                  <span class="ref-input__status" id="refStatus">0/13</span>
-                </div>
-                <p class="ck-field__hint" id="refHint">Numbers only, exactly 13 digits.</p>
-              </div>
-
-              <div class="ck-field">
-                <label>Payment screenshot</label>
-                <label class="dropzone" id="dropzone" for="fileInput">
-                  <svg class="icon">
-                    <use href="#icon-upload" />
-                  </svg>
-                  <span id="dropzoneText">Tap to upload your GCash payment screenshot</span>
-                  <input id="fileInput" type="file" accept="image/*" hidden />
-                </label>
-                <div class="attachment" id="attachment" hidden>
-                  <svg class="icon">
-                    <use href="#icon-image" />
-                  </svg>
-                  <span id="attachmentName">receipt.jpg</span>
-                  <svg class="icon icon--ok">
-                    <use href="#icon-check" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <button class="btn btn--primary btn--block" id="confirmOrderBtn" disabled>
-            <span id="confirmBtnLabel">Enter reference number &amp; upload screenshot</span>
-          </button>
-
-          <div class="ck-success" id="ckSuccess" hidden>
-            <svg class="icon icon--lg icon--ok">
-              <use href="#icon-check" />
-            </svg>
-            <h3>Order submitted</h3>
-            <p>Ticket <strong>FB-2291</strong> is <span class="status-pill status-pill--hold">PENDING
-                VERIFICATION</span>
-            </p>
-            <p class="ck-success__note">We'll confirm your order once payment is verified — usually within 15 minutes.
-              You'll get a message here.</p>
+            <div class="queue-col__cards" id="colPending"></div>
           </div>
-
+          <div class="queue-col" data-col="preparing">
+            <div class="queue-col__head">
+              <h3>Preparing · Kitchen Line</h3>
+              <span class="queue-col__count tnum" id="countPreparing">0</span>
+            </div>
+            <div class="queue-col__cards" id="colPreparing"></div>
+          </div>
+          <div class="queue-col" data-col="ready">
+            <div class="queue-col__head">
+              <h3>Ready for Dispatch</h3>
+              <span class="queue-col__count tnum" id="countReady">0</span>
+            </div>
+            <div class="queue-col__cards" id="colReady"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -460,7 +416,7 @@
     <!-- ============ MANAGER PIN MODAL ============ -->
     <div class="scrim" id="pinScrim" hidden>
       <div class="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
-        <button class="pin-modal__close" id="pinCloseBtn" aria-label="Cancel">
+        <button class="modal-close" id="pinCloseBtn" aria-label="Cancel">
           <svg class="icon">
             <use href="#icon-close" />
           </svg>
@@ -489,6 +445,62 @@
         <div class="pin-lockout" id="pinLockout" hidden>
           <p>Terminal locked</p>
           <p class="pin-lockout__timer tnum" id="pinLockoutTimer">0:30</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ ORDER DETAIL MODAL (Facebook QR checkout / Held order) ============ -->
+    <div class="scrim" id="orderModalScrim" hidden>
+      <div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+        <button class="modal-close" id="orderModalCloseBtn" aria-label="Close">
+          <svg class="icon">
+            <use href="#icon-close" />
+          </svg>
+        </button>
+
+        <div class="order-modal__head">
+          <div>
+            <h3 id="orderModalTitle">Facebook Order</h3>
+            <span class="order-modal__ticket tnum" id="orderModalTicket">Ticket #48</span>
+          </div>
+          <span class="status-pill status-pill--hold" id="orderModalStatus">PENDING PAYMENT</span>
+        </div>
+
+        <div class="order-modal__body">
+          <section class="ck-block">
+            <h3 class="ck-block__title">Order Summary</h3>
+            <ul class="ck-order-list" id="orderModalItems"></ul>
+            <div class="ck-order-total"><span>Total</span><span class="tnum" id="orderModalTotal">₱0.00</span></div>
+          </section>
+
+          <section class="ck-block" id="orderModalCustomerBlock">
+            <h3 class="ck-block__title">Customer Details</h3>
+            <div class="ck-field"><label for="modalCustName">Full name</label><input id="modalCustName" type="text"
+                placeholder="e.g. Maricel Ong" /></div>
+            <div class="ck-field"><label for="modalCustPhone">Contact number</label><input id="modalCustPhone"
+                type="tel" placeholder="09XX XXX XXXX" /></div>
+            <div class="ck-field"><label for="modalCustAddr">Delivery address</label><textarea id="modalCustAddr"
+                rows="2" placeholder="House/Unit, Street, Barangay"></textarea></div>
+          </section>
+
+          <section class="ck-block" id="orderModalPaymentBlock">
+            <h3 class="ck-block__title">Payment Method</h3>
+            <div class="ck-paymethods" id="modalPayMethods">
+              <button class="ck-paymethod is-active" type="button" data-method="gcash">GCash</button>
+              <button class="ck-paymethod" type="button" data-method="qrph">QRPh</button>
+            </div>
+            <div class="qr-panel" id="modalQrPanel" hidden>
+              <div class="qr-placeholder">
+                <div class="qr-placeholder__grid"></div>
+                <span>Scan to pay via QRPh</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="order-modal__foot">
+          <button class="btn btn--ghost" id="orderModalSecondaryBtn" type="button">Resume on POS</button>
+          <button class="btn btn--primary" id="orderModalPrimaryBtn" type="button">Save &amp; Move to Pending</button>
         </div>
       </div>
     </div>
